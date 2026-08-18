@@ -13,3 +13,6 @@ samples/*.txt
 .DS_Store
 __pycache__/
 *.pyc
+
+# 模型运行时产生的临时下载与截图
+tmp/
