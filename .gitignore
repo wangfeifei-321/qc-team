@@ -1,0 +1,15 @@
+# ⚠️ 密钥文件，绝不上传
+.env
+
+# 保护客户隐私：真实稿件和报告绝不上传
+reports/*
+!reports/.gitkeep
+samples/*.docx
+samples/*.txt
+!samples/demo_稿件样例.txt
+*.docx
+
+# 系统
+.DS_Store
+__pycache__/
+*.pyc

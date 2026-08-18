@@ -1,0 +1,8 @@
+【这是一份用于演示的虚构稿件样例，不含任何真实客户信息】
+
+Consumers show rising interest in functional beverages (Smith et al., 2023).
+Country-of-origin information means imported products always command a premium (Jones, 2016) DOI: 10.1016/j.example.2016.01.001
+
+参考文献
+Smith, A. (2023) 'Functional beverage trends', Journal of Marketing, 8(3), pp. 1-20.
+Jones, B. (2016) 'Country of origin effects', Food Policy, 64, pp. 49-62. DOI: 10.1016/j.example.2016.01.001
