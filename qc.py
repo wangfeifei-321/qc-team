@@ -11,6 +11,7 @@
   → 输出完整质检报告
 
 用法:
+  python3 qc.py 稿件.docx
   python3 qc.py 稿件.txt
 
 环境要求 (你的 Mac 已满足):
@@ -18,7 +19,7 @@
   - codex 命令可用
   - .env 里填了 MINIMAX_API_KEY
 """
-import sys, os, subprocess, json, urllib.request, time
+import sys, os, subprocess, json, urllib.request, time, tempfile, shutil
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 ROLES = os.path.join(HERE, 'roles')
@@ -41,7 +42,77 @@ def load_env():
     return cfg
 
 def read(path):
-    return open(path, encoding='utf-8', errors='ignore').read()
+    with open(path, encoding='utf-8', errors='ignore') as file:
+        return file.read()
+
+def read_docx(path):
+    """读取 Word 正文和表格，不在原稿旁边生成中间 TXT。"""
+    try:
+        from docx import Document
+    except ImportError as e:
+        raise RuntimeError(
+            '读取 Word 需要 python-docx。请先运行: python3 -m pip install python-docx'
+        ) from e
+
+    try:
+        document = Document(path)
+    except Exception as e:
+        raise RuntimeError(f'无法读取 Word 文件，请确认它是有效的 .docx 文件: {e}') from e
+
+    lines = [p.text.strip() for p in document.paragraphs if p.text.strip()]
+    for table in document.tables:
+        for row in table.rows:
+            cells = [cell.text.strip() for cell in row.cells if cell.text.strip()]
+            if cells:
+                lines.append(' | '.join(cells))
+    text = '\n'.join(lines).strip()
+    if not text:
+        raise RuntimeError('Word 文件中没有读取到正文或表格文字。扫描版 Word 请先进行 OCR。')
+    return text
+
+def load_manuscript(path):
+    """自动识别 DOCX 或 UTF-8 文本稿件。"""
+    ext = os.path.splitext(path)[1].lower()
+    if ext == '.docx':
+        print('  ✓ 已自动读取 Word 正文和表格，无需手动转 TXT')
+        return read_docx(path)
+    if ext in {'.txt', '.md'}:
+        text = read(path).strip()
+        if not text:
+            raise RuntimeError('稿件内容为空。')
+        return text
+    raise RuntimeError('目前支持 .docx、.txt 和 .md 文件。旧版 .doc 请先另存为 .docx。')
+
+def ensure_ready(cfg):
+    """在产生模型费用前完成一次性配置检查。"""
+    if not cfg.get('MINIMAX_API_KEY'):
+        raise RuntimeError(
+            '尚未配置 MiniMax。请把 .env.example 复制为 .env，并填写 MINIMAX_API_KEY。'
+        )
+    missing = [cmd for cmd in ('claude', 'codex') if not shutil.which(cmd)]
+    if missing:
+        raise RuntimeError(f"找不到命令: {', '.join(missing)}。请先安装并登录对应 CLI。")
+
+def verify_references(doc_text):
+    """将统一提取出的文本交给 Crossref 脚本，并在完成后删除临时文件。"""
+    temp_path = None
+    try:
+        with tempfile.NamedTemporaryFile(
+            mode='w', encoding='utf-8', suffix='.txt', prefix='qc-team-', delete=False
+        ) as temp_file:
+            temp_file.write(doc_text)
+            temp_path = temp_file.name
+        result = subprocess.run(
+            [sys.executable, os.path.join(HERE, 'scripts', 'verify_refs.py'), temp_path],
+            timeout=1800,
+        )
+        if result.returncode != 0:
+            raise RuntimeError('Crossref 文献核验失败，流程已停止。')
+    except subprocess.TimeoutExpired as e:
+        raise RuntimeError('Crossref 文献核验超时，流程已停止。') from e
+    finally:
+        if temp_path and os.path.exists(temp_path):
+            os.unlink(temp_path)
 
 # ---------- 第1步: 调 Claude Code 当主审 ----------
 def call_claude(role, doc, refs_fact):
@@ -50,14 +121,15 @@ def call_claude(role, doc, refs_fact):
     try:
         # claude -p 是非交互模式,直接给prompt拿输出
         r = subprocess.run(['claude', '-p', prompt],
-                           capture_output=True, text=True, timeout=600)
+                           capture_output=True, text=True, timeout=600,
+                           encoding='utf-8', errors='replace')
         if r.returncode != 0:
-            return f'[主审调用出错] {r.stderr[:500]}'
+            raise RuntimeError(f'Claude 主审调用失败: {r.stderr[:500]}')
         return r.stdout.strip()
     except FileNotFoundError:
-        return '[错误] 找不到 claude 命令。请确认 Claude Code 已安装。'
+        raise RuntimeError('找不到 claude 命令。请确认 Claude Code 已安装。')
     except subprocess.TimeoutExpired:
-        return '[错误] 主审超时。稿件可能太长,可分段。'
+        raise RuntimeError('Claude 主审超时。稿件可能太长，可分段后重试。')
 
 # ---------- 第2步: 调 Codex 当复核 ----------
 def call_codex(role, doc, refs_fact, lead_review):
@@ -66,15 +138,15 @@ def call_codex(role, doc, refs_fact, lead_review):
     try:
         # codex exec 是非交互执行模式
         r = subprocess.run(['codex', 'exec', prompt],
-                           capture_output=True, text=True, timeout=600)
+                           capture_output=True, text=True, timeout=600,
+                           encoding='utf-8', errors='replace')
         if r.returncode != 0:
-            # 有些版本用 codex -q 或直接 codex, 给出提示
-            return f'[复核调用出错] {r.stderr[:500]}\n(若报错,可能是 codex 子命令不同,见 README 排错)'
+            raise RuntimeError(f'Codex 复核调用失败: {r.stderr[:500]}')
         return r.stdout.strip()
     except FileNotFoundError:
-        return '[错误] 找不到 codex 命令。'
+        raise RuntimeError('找不到 codex 命令。')
     except subprocess.TimeoutExpired:
-        return '[错误] 复核超时。'
+        raise RuntimeError('Codex 复核超时。')
 
 # ---------- 第3步: 调 MiniMax API 当整理 ----------
 def call_minimax(role, lead_review, cross_review, refs_fact, cfg):
@@ -82,7 +154,7 @@ def call_minimax(role, lead_review, cross_review, refs_fact, cfg):
     url = cfg.get('MINIMAX_API_URL', 'https://api.minimaxi.com/v1/text/chatcompletion_v2')
     model = cfg.get('MINIMAX_MODEL', 'MiniMax-Text-01')
     if not key:
-        return '[错误] .env 里没有 MINIMAX_API_KEY。请填入后重跑。'
+        raise RuntimeError('.env 里没有 MINIMAX_API_KEY。请填入后重跑。')
 
     user_content = (f"{role}\n\n=== 文献核验结果 ===\n{refs_fact}\n\n"
                     f"=== 主审意见 ===\n{lead_review}\n\n"
@@ -102,55 +174,58 @@ def call_minimax(role, lead_review, cross_review, refs_fact, cfg):
         # MiniMax 返回结构: choices[0].message.content
         return resp['choices'][0]['message']['content']
     except Exception as e:
-        return (f'[MiniMax API 调用出错] {e}\n'
-                f'请核对 .env 里的 MINIMAX_API_URL 和 MINIMAX_MODEL 是否和你平台文档一致。\n'
-                f'(不同国产平台接口地址/模型名不同)')
+        raise RuntimeError(
+            f'MiniMax API 调用失败: {e}\n'
+            '请核对 .env 里的 MINIMAX_API_URL、MINIMAX_MODEL 和 API Key。'
+        ) from e
 
 # ---------- 主流程 ----------
 def main():
     if len(sys.argv) < 2:
-        print('用法: python3 qc.py 稿件.txt'); sys.exit(1)
-    docpath = sys.argv[1]
+        print('用法: python3 qc.py "/完整路径/稿件.docx"'); sys.exit(1)
+    docpath = os.path.abspath(os.path.expanduser(sys.argv[1]))
     if not os.path.exists(docpath):
         print(f'找不到文件: {docpath}'); sys.exit(1)
 
-    cfg = load_env()
-    name = os.path.splitext(os.path.basename(docpath))[0]
-    stamp = time.strftime('%Y-%m-%d_%H%M%S')
-    os.makedirs(REPORTS, exist_ok=True)
+    try:
+        cfg = load_env()
+        ensure_ready(cfg)
+        doc = load_manuscript(docpath)
+        name = os.path.splitext(os.path.basename(docpath))[0]
+        stamp = time.strftime('%Y-%m-%d_%H%M%S')
+        os.makedirs(REPORTS, exist_ok=True)
 
-    print('='*50)
-    print(f'  质检团队启动 · 稿件: {name}')
-    print('='*50)
+        print('='*50)
+        print(f'  三角色质检团队启动 · 稿件: {name}')
+        print('  Claude 主审 → Codex 复核 → MiniMax 整理')
+        print('='*50)
 
-    # 第0步: 文献真实核验
-    print('\n▶ 第0步: Crossref 真实核验文献...')
-    subprocess.run(['python3', os.path.join(HERE, 'scripts', 'verify_refs.py'), docpath])
-    refs_path = os.path.join(REPORTS, '_refs_verified.json')
-    refs_fact = read(refs_path) if os.path.exists(refs_path) else '(无DOI或核验未产出)'
+        print('\n▶ 第0步: Crossref 真实核验文献...')
+        verify_references(doc)
+        refs_path = os.path.join(REPORTS, '_refs_verified.json')
+        refs_fact = read(refs_path) if os.path.exists(refs_path) else '(无 DOI 或核验未产出)'
 
-    doc = read(docpath)
+        print('\n▶ 第1步: Claude 主审')
+        lead = call_claude(read(os.path.join(ROLES, '01_主审_claude.md')), doc, refs_fact)
+        open(os.path.join(REPORTS, f'{name}_1主审.md'), 'w', encoding='utf-8').write(lead)
 
-    # 第1步: 主审
-    print('\n▶ 第1步: 主审')
-    lead = call_claude(read(os.path.join(ROLES, '01_主审_claude.md')), doc, refs_fact)
-    open(os.path.join(REPORTS, f'{name}_1主审.md'), 'w', encoding='utf-8').write(lead)
+        print('\n▶ 第2步: Codex 复核')
+        cross = call_codex(read(os.path.join(ROLES, '02_复核_codex.md')), doc, refs_fact, lead)
+        open(os.path.join(REPORTS, f'{name}_2复核.md'), 'w', encoding='utf-8').write(cross)
 
-    # 第2步: 复核
-    print('\n▶ 第2步: 复核')
-    cross = call_codex(read(os.path.join(ROLES, '02_复核_codex.md')), doc, refs_fact, lead)
-    open(os.path.join(REPORTS, f'{name}_2复核.md'), 'w', encoding='utf-8').write(cross)
+        print('\n▶ 第3步: MiniMax 整理')
+        final = call_minimax(read(os.path.join(ROLES, '03_整理_minimax.md')), lead, cross, refs_fact, cfg)
+        outpath = os.path.join(REPORTS, f'{name}_质检报告_{stamp}.md')
+        open(outpath, 'w', encoding='utf-8').write(final)
 
-    # 第3步: 整理
-    print('\n▶ 第3步: 整理')
-    final = call_minimax(read(os.path.join(ROLES, '03_整理_minimax.md')), lead, cross, refs_fact, cfg)
-    outpath = os.path.join(REPORTS, f'{name}_质检报告_{stamp}.md')
-    open(outpath, 'w', encoding='utf-8').write(final)
-
-    print('\n' + '='*50)
-    print(f'  ✅ 完成! 最终报告:')
-    print(f'  {outpath}')
-    print('='*50)
+        print('\n' + '='*50)
+        print('  ✅ 三个角色已全部完成，最终报告:')
+        print(f'  {outpath}')
+        print('='*50)
+    except RuntimeError as e:
+        print(f'\n❌ {e}', file=sys.stderr)
+        print('流程已停止，不会把不完整结果显示为成功。', file=sys.stderr)
+        sys.exit(1)
 
 if __name__ == '__main__':
     main()

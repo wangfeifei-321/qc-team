@@ -71,28 +71,32 @@ cd qc-team
 cp .env.example .env
 ```
 
-编辑 `.env`，填写自己的 MiniMax 配置。不要把密钥写进代码、截图、Issue 或提交记录。
+编辑 `.env`，填写自己的 MiniMax 配置。这是一次性设置，以后质检稿件不需要重复填写。不要把密钥写进代码、截图、Issue 或提交记录。
 
-程序主入口接受 UTF-8 文本文件：
-
-```bash
-python3 qc.py "/绝对路径/稿件.txt"
-```
-
-如果稿件是 DOCX，先转换为 TXT：
+安装 Word 读取依赖：
 
 ```bash
-python3 -m pip install python-docx
-python3 scripts/docx2txt.py "/绝对路径/稿件.docx"
-python3 qc.py "/绝对路径/稿件.txt"
+python3 -m pip install -r requirements.txt
 ```
 
-文件路径含空格时，请用引号包住完整路径。
+之后每次质检 Word，只需一条命令：
+
+```bash
+./qc "/绝对路径/稿件.docx"
+```
+
+程序会自动读取 Word 正文和表格，并依次调用 Claude 主审、Codex 复核、MiniMax 整理。无需手动转换 TXT，也可以使用原来的完整写法：
+
+```bash
+python3 qc.py "/绝对路径/稿件.docx"
+```
+
+`.txt` 和 `.md` 稿件也可直接交给同一命令。旧版 `.doc` 请先在 Word 中另存为 `.docx`。文件路径含空格或中文时，请用英文双引号包住完整路径，也可以从 Finder 把文件直接拖入终端。
 
 ## 运行演示
 
 ```bash
-python3 qc.py samples/demo_稿件样例.txt
+./qc samples/demo_稿件样例.txt
 ```
 
 该命令会调用外部模型/API，可能产生费用。演示稿件是虚构样例，故意包含可疑 DOI，用于观察核验流程。
