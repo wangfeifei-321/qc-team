@@ -8,6 +8,11 @@ from scripts import run_audited_qc as audited
 
 
 class AuditedQcAdapterTests(unittest.TestCase):
+    def test_prefers_formal_agent_loader(self):
+        with patch.object(audited.qc, "read_agent", create=True, return_value="formal") as reader:
+            self.assertEqual(audited.load_agent("qc-conductor", "legacy.md"), "formal")
+            reader.assert_called_once_with("qc-conductor")
+
     def test_production_run_links_upstream_and_keeps_first_pass_independent(self):
         with tempfile.TemporaryDirectory() as temporary_dir:
             root = Path(temporary_dir)

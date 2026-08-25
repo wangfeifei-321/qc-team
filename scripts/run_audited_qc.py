@@ -32,6 +32,13 @@ def complete_task(run: EvidenceRun, task: str, operation):
     return result
 
 
+def load_agent(slug: str, legacy_filename: str) -> str:
+    """Prefer formal Agent definitions while retaining old-repo compatibility."""
+    if hasattr(qc, "read_agent"):
+        return qc.read_agent(slug)
+    return qc.read(str(PROJECT_ROOT / "roles" / legacy_filename))
+
+
 def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
     parser = argparse.ArgumentParser(description="Run QC-Team with immutable evidence")
     parser.add_argument("manuscript")
@@ -99,9 +106,9 @@ def main(argv: list[str] | None = None) -> int:
         run.set_gate("reference_evidence", "PASS", refs_record["path"])
         refs_fact = qc.read(str(refs_path))
 
-        lead_role = qc.read(str(PROJECT_ROOT / "roles" / "01_主审_claude.md"))
-        cross_role = qc.read(str(PROJECT_ROOT / "roles" / "02_复核_codex.md"))
-        final_role = qc.read(str(PROJECT_ROOT / "roles" / "03_整理_minimax.md"))
+        lead_role = load_agent("qc-conductor", "01_主审_claude.md")
+        cross_role = load_agent("qc-verifier", "02_复核_codex.md")
+        final_role = load_agent("qc-reporter", "03_整理_minimax.md")
 
         # The two first-pass reviewers receive the same manuscript and evidence,
         # but neither receives the other reviewer's output.
