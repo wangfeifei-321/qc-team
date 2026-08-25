@@ -147,8 +147,8 @@ BLOCKED ──依赖齐了──▶ READY ──派发──▶ RUNNING ──�
 
 | 项目 | 已定义 | 单测验证 | 真实运行 |
 |---|---|---|---|
-| 正式 Agent 定义 `.claude/agents/` | ✅ | ✅ | ✅ NLPM 已评分 |
-| `.claude-plugin/plugin.json` + `CLAUDE.md` | ✅ | ✅ `nlpm-check` | ✅ 100/100 |
+| 正式 Agent 定义 `.claude/agents/` | ✅ | ✅ | ✅ |
+| `.claude-plugin/plugin.json` + `CLAUDE.md` | ✅ | ✅ | ✅ |
 | 责权利契约（五状态 + 5 闸门 + 矩阵） | ✅ | ✅ | 待生产 run |
 | 证据运行时 SHA-256 封存 | ✅ | ✅ | 仅演示 run |
 | DIP → QC 交接 | ✅ | ✅ | **未完成** |
@@ -175,14 +175,13 @@ BLOCKED ──依赖齐了──▶ READY ──派发──▶ RUNNING ──�
 
 ---
 
-## 测试与静态门（本次 commit 实测）
+## 测试（本次 commit 实测）
 
 ```bash
 $ python3 -m unittest discover -s tests
-Ran 16 tests ... OK
+Ran 16 tests in 0.104s
 
-$ nlpm-check .
-nlpm-check: clean
+OK
 ```
 
 16 个测试覆盖：稿件读取、Agent 定义加载、frontmatter 剥离、
@@ -220,54 +219,7 @@ nlpm-check: clean
 
 <!-- _class: lead -->
 
-# 5. NLPM 评分
-
----
-
-## 起点：整个仓库扫不到
-
-```bash
-$ nlpm-check ~/Desktop/qc-team
-no .claude-plugin/plugin.json found at, above, or within ...
-```
-
-NLPM 打的是**自然语言 artifact**（agents / rules / CLAUDE.md / plugin.json），
-不打 `qc.py`。改之前这个仓库在评分工具眼里等于空的。
-
----
-
-## 改之后：100 / 100
-
-```
-File                                        Type        Score  Findings
-─────────────────────────────────────────────────────────────────────
-.claude/agents/qc-conductor.md              agent        100     0
-.claude/agents/qc-verifier.md               agent        100     0
-.claude/agents/qc-reporter.md               agent        100     0
-.claude/rules/agent-authority-contract.md   rule         100     0
-.claude-plugin/plugin.json                  manifest     100     0
-CLAUDE.md                                   claude-md    100     0
-
-Overall: 100/100 — EXCELLENT              [threshold: 70]
-```
-
----
-
-## 中间那一次是 97 分，值得说
-
-`qc-reporter` 只拿到 83：
-
-- `model: haiku` 配上放行闸门的把关职责 → **档位错配 −5**
-- 两处模糊量词 → **R01 −2 ×2**
-
-这条 finding 是对的：**做权威性校准和推荐替代文献的角色，
-正是幻觉风险最高的地方，不该配最低档模型。** 改成 sonnet 后满分。
-
----
-
-<!-- _class: lead -->
-
-# 6. 对照上周的高分样本
+# 5. 对照上周的高分样本
 
 ---
 
@@ -289,7 +241,6 @@ run id · 冻结基线 · Agent 流 · 跨厂商模型路由（含 effort 档位
 | 闸门 | 9/9 PASS | 5 道已定义，真实生产 run 待完成 |
 | 状态机 | 有 | 有，五状态 + 可机械判定的进入条件 |
 | 产物哈希封存 | 未见 | 有，SHA-256 |
-| NLPM 评分 | 未知 | 100/100 |
 | Action Integration | NOT_CONNECTED | **同样未接通** |
 
 ---
@@ -311,7 +262,7 @@ CLI v0.5.1 已源码编译安装，agent draft 已创建。
 
 <!-- _class: lead -->
 
-# 7. 边界与下一步
+# 6. 边界与下一步
 
 ---
 

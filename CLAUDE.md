@@ -68,7 +68,7 @@ qc-reporter（MiniMax HTTP API）  机械扫描 + 综合报告   ──► repor
 | `qc` | 一行 shell 封装，转调 `qc.py` |
 | `.claude/agents/*.md` | 三个 Agent 定义。`qc.py` 用 `read_agent()` 剥掉 frontmatter 后当角色提示词；Claude Code 也能直接把它们当 subagent 调用 |
 | `.claude/rules/agent-authority-contract.md` | 责权利契约：五状态机、三道闸门、放行权矩阵、受保护标注 |
-| `.claude-plugin/plugin.json` | 插件清单，供 NLPM 与 `claude plugin` 识别 |
+| `.claude-plugin/plugin.json` | 插件清单，供 `claude plugin` 与静态校验工具识别 |
 | `scripts/verify_refs.py` | 提取 DOI 并走 Crossref 核验，输出 `reports/_refs_verified.json` |
 | `scripts/docx2txt.py` | 独立的 Word 转文本工具（`qc.py` 已内建同等能力，此脚本供手工排查使用） |
 | `tests/test_qc.py` | 稿件读取、Agent 定义加载、环境检查的单元测试 |
@@ -80,4 +80,4 @@ qc-reporter（MiniMax HTTP API）  机械扫描 + 综合报告   ──► repor
 - **新增 Agent 必须同时在 `.claude/rules/agent-authority-contract.md` 的责权利矩阵里登记一行。** 未登记的角色没有放行权，等同于阻断性缺陷。
 - **三个 Agent 都不声明 `Write` 或 `Edit`。** 产物由 `qc.py` 落盘，这样「谁写了什么」在文件系统层面唯一可追溯。
 - **绝不把真实稿件、`.env`、`reports/` 里的内容提交进仓库。** 提交前跑一次 `git status --short` 确认。
-- **改动后跑一次质量门**：`python3 -m unittest discover -s tests` 和 `nlpm-check .`。
+- **改动后跑一次质量门**：`python3 -m unittest discover -s tests`。
