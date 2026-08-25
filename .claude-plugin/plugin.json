@@ -1,0 +1,17 @@
+{
+  "name": "qc-team",
+  "version": "0.2.0",
+  "description": "三模型交叉核验的学术作业质检团队：Crossref 确定性核验文献真实性，Claude 主审、Codex 复核、MiniMax 整理，按 D1-D7 七维度出放行判断。",
+  "author": {
+    "name": "wangfeifei-321"
+  },
+  "license": "ISC",
+  "repository": "https://github.com/wangfeifei-321/qc-team",
+  "category": "quality-assurance",
+  "keywords": [
+    "academic-integrity",
+    "citation-verification",
+    "multi-model",
+    "cross-verification"
+  ]
+}

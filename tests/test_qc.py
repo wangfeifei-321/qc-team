@@ -50,5 +50,32 @@ class ManuscriptLoadingTests(unittest.TestCase):
             os.unlink(path)
 
 
+class AgentDefinitionTests(unittest.TestCase):
+    SLUGS = ("qc-conductor", "qc-verifier", "qc-reporter")
+
+    def test_every_agent_definition_loads(self):
+        for slug in self.SLUGS:
+            with self.subTest(slug=slug):
+                body = qc.read_agent(slug)
+                self.assertTrue(body.strip(), f"{slug} 正文为空")
+
+    def test_frontmatter_is_stripped(self):
+        body = qc.read_agent("qc-conductor")
+        self.assertFalse(body.startswith("---"), "frontmatter 未被剥掉")
+        self.assertNotIn("description:", body.split("\n")[0])
+
+    def test_missing_agent_raises(self):
+        with self.assertRaisesRegex(RuntimeError, "找不到 Agent 定义"):
+            qc.read_agent("qc-does-not-exist")
+
+    def test_every_agent_is_registered_in_the_contract(self):
+        contract = (
+            Path(qc.HERE) / ".claude" / "rules" / "agent-authority-contract.md"
+        ).read_text(encoding="utf-8")
+        for slug in self.SLUGS:
+            with self.subTest(slug=slug):
+                self.assertIn(slug, contract, f"{slug} 未登记进责权利契约")
+
+
 if __name__ == "__main__":
     unittest.main()

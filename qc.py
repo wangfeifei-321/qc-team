@@ -22,7 +22,7 @@
 import sys, os, subprocess, json, urllib.request, time, tempfile, shutil
 
 HERE = os.path.dirname(os.path.abspath(__file__))
-ROLES = os.path.join(HERE, 'roles')
+AGENTS = os.path.join(HERE, '.claude', 'agents')
 REPORTS = os.path.join(HERE, 'reports')
 
 # ---------- 读取 .env 里的密钥 (绝不写死在代码里) ----------
@@ -44,6 +44,22 @@ def load_env():
 def read(path):
     with open(path, encoding='utf-8', errors='ignore') as file:
         return file.read()
+
+def read_agent(slug):
+    """读取 .claude/agents/<slug>.md 并剥掉 YAML frontmatter，只把正文当角色提示词。
+
+    Agent 定义同时被 Claude Code 的 Task 工具和本脚本使用，因此文件必须带
+    frontmatter；frontmatter 是给运行时读的元数据，不该混进模型提示词。
+    """
+    path = os.path.join(AGENTS, f'{slug}.md')
+    if not os.path.exists(path):
+        raise RuntimeError(f'找不到 Agent 定义: {path}')
+    text = read(path)
+    if text.startswith('---'):
+        parts = text.split('---', 2)
+        if len(parts) == 3:
+            return parts[2].lstrip('\n')
+    return text
 
 def read_docx(path):
     """读取 Word 正文和表格，不在原稿旁边生成中间 TXT。"""
@@ -206,15 +222,15 @@ def main():
         refs_fact = read(refs_path) if os.path.exists(refs_path) else '(无 DOI 或核验未产出)'
 
         print('\n▶ 第1步: Claude 主审')
-        lead = call_claude(read(os.path.join(ROLES, '01_主审_claude.md')), doc, refs_fact)
+        lead = call_claude(read_agent('qc-conductor'), doc, refs_fact)
         open(os.path.join(REPORTS, f'{name}_1主审.md'), 'w', encoding='utf-8').write(lead)
 
         print('\n▶ 第2步: Codex 复核')
-        cross = call_codex(read(os.path.join(ROLES, '02_复核_codex.md')), doc, refs_fact, lead)
+        cross = call_codex(read_agent('qc-verifier'), doc, refs_fact, lead)
         open(os.path.join(REPORTS, f'{name}_2复核.md'), 'w', encoding='utf-8').write(cross)
 
         print('\n▶ 第3步: MiniMax 整理')
-        final = call_minimax(read(os.path.join(ROLES, '03_整理_minimax.md')), lead, cross, refs_fact, cfg)
+        final = call_minimax(read_agent('qc-reporter'), lead, cross, refs_fact, cfg)
         outpath = os.path.join(REPORTS, f'{name}_质检报告_{stamp}.md')
         open(outpath, 'w', encoding='utf-8').write(final)
 

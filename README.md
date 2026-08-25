@@ -51,7 +51,7 @@ MiniMax 整理最终报告
 | 复核 / Evidence Engineer | Codex CLI | 复查文献元数据、引用方向、数据和定位，指出主审漏判或误判 |
 | 整理 / Independent Checker | MiniMax API | 扫描格式与交付物，保留分歧并整理报告 |
 
-角色规则保存在 [`roles/`](roles/) 中，可以独立维护和版本化。
+角色定义保存在 [`.claude/agents/`](.claude/agents/) 中，是带 frontmatter 的标准 Claude Code Agent 文件：既被 `qc.py` 当作角色提示词读取，也能被 Claude Code 直接作为 subagent 调用。权限与放行规则见 [`.claude/rules/agent-authority-contract.md`](.claude/rules/agent-authority-contract.md)。
 
 ## 环境要求
 
@@ -118,7 +118,8 @@ python3 qc.py "/绝对路径/稿件.docx"
 ```text
 qc-team/
 ├── qc.py                         # 主流程
-├── roles/                        # 三个模型的角色与判断边界
+├── .claude/agents/               # 三个 Agent 定义（qc-conductor / qc-verifier / qc-reporter）
+├── .claude/rules/                # 责权利契约：状态机、闸门、放行权矩阵
 ├── scripts/
 │   ├── docx2txt.py               # DOCX 转纯文本
 │   └── verify_refs.py            # Crossref DOI 核验
