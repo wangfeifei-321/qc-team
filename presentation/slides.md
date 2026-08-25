@@ -210,9 +210,7 @@ OK
 
 本机 Claude Code v2.1.233，满足 ≥ v2.1.139 的要求。
 
-![width:820px](evidence/agent-view-completed.jpeg)
-
-`0 awaiting input · 0 working · 1 completed`，工作目录 `~/Desktop/qc-team`。
+![width:680px](evidence/agent-view-completed.jpeg)
 
 ---
 
@@ -246,10 +244,7 @@ run id · 冻结基线 · Agent 流 · 跨厂商模型路由（含 effort 档位
 
 ## Claudepot：真实跑通了
 
-![width:900px](evidence/claudepot-success.jpeg)
-
-`QC-Team Trigger v2` · 状态**成功** · 2026-08-25 04:08:38 · 用时 4m · 4 轮 ·
-`subtype: success` · `is_error: false` · `stop_reason: end_turn`
+![width:800px](evidence/claudepot-success.jpeg)
 
 ---
 
