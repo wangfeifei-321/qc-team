@@ -10,7 +10,14 @@ description: "AQC-7 三个 Agent 的责权利契约：状态机、依赖闸门�
 
 ## 一、状态机：一个 Agent 的一生只有五种状态
 
-**每个 Agent 在任一时刻必须处于且仅处于下列五种状态之一，状态由编排器（`qc.py`）独占写入。**理由：状态若由 Agent 自报，失败就会以沉默的方式传播，下游拿到空产物仍继续跑。
+**每个 Agent 在任一时刻必须处于且仅处于下列五种状态之一，状态由 `qc_evidence.py` 的 `EvidenceRun` 独占写入。**理由：状态若由 Agent 自报，失败就会以沉默的方式传播，下游拿到空产物仍继续跑。
+
+两个入口的能力不同，引用时不得混为一谈：
+
+| 入口 | 状态机 | 闸门 | 首轮独立性 |
+|---|---|---|---|
+| `qc.py`（legacy） | 无。单轮串联，复核能看到主审答案 | 无机械执行 | 否 |
+| `scripts/run_audited_qc.py`（audited） | 有，`EvidenceRun` 强制 | 5 道，逐道要 evidence locator | 主审与复核首轮互不可见 |
 
 | 状态 | 含义 | 进入条件（可机械判定） |
 |---|---|---|
@@ -32,13 +39,21 @@ description: "AQC-7 三个 Agent 的责权利契约：状态机、依赖闸门�
 
 **排到了不等于可以跑；闸门未关闭，下一轮不得开始。** 理由：质检的每一层都建立在上一层的产物之上，上一层还在动，下一层的结论就没有意义。
 
-| 闸门 | 守门人 | 判据 | 不通过时 |
-|---|---|---|---|
-| 闸门 1 · 来源闸门 | `scripts/verify_refs.py` | 每个 DOI 都有 Crossref 查询结果（命中或明确「查无」），无一条留空 | 停止，不进入主审 |
-| 闸门 2 · 双强核闸门 | `qc-conductor` + `qc-verifier` | 每条关键事实拿到 2/2 一致；任一方 `UNVERIFIED` 即不通过 | 回原文复核，同一缺陷最多返工 3 次 |
-| 闸门 3 · 放行闸门 | `qc-reporter` | 八个板块齐全，且红黄绿灯有对应依据 | 不得输出「可提交」 |
+生产编排（`scripts/run_audited_qc.py`）声明 **5 道闸门**，闸门名与代码里的 `required_gates` 逐字一致：
 
-**闸门 2 不通过时不得由闸门 3 翻案。** 整理者可以阻断，不能放行。
+| 闸门 | 代码里的名字 | 守门人 | 判据 |
+|---|---|---|---|
+| 1 · 来源闸门 | `provenance` | 编排器 | 上游 DIP frozen manifest 存在；或显式声明为无上游的独立运行 |
+| 2 · 基线闸门 | `baseline_integrity` | 编排器 | 稿件已冻结并记录 SHA-256 |
+| 3 · 文献证据闸门 | `reference_evidence` | `scripts/verify_refs.py` | 每个 DOI 都有 Crossref 查询结果（命中或明确「查无」），无一条留空 |
+| 4 · 双强核闸门 | `independent_dual_review` | `qc-conductor` + `qc-verifier` | 每条关键事实拿到 2/2 一致；任一方 `UNVERIFIED` 即不通过 |
+| 5 · 放行闸门 | `release` | `qc-reporter` | 八个板块齐全，且红黄绿灯有对应依据 |
+
+`qc_evidence.py demo` 的演示控制器只声明 3 道（`baseline_integrity`、`evidence_locator`、`release`），因为它不调用模型、也没有上游 DIP。**演示运行的闸门数不得被引用为生产能力。**
+
+**每一道闸门的通过都必须附一个 evidence locator，且该文件要在本次 run 目录内真实存在**，否则 `set_gate` 直接拒绝。
+
+**闸门 4 不通过时不得由闸门 5 翻案。** 整理者可以阻断，不能放行。
 
 ---
 

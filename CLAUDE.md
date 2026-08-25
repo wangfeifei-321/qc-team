@@ -35,6 +35,15 @@ python3 qc.py "/绝对路径/稿件.docx"               # 跑真实稿件，.doc
 python3 -m unittest discover -s tests -v
 ```
 
+## 两个入口，能力不同
+
+| 入口 | 命令 | 状态机 | 闸门 | 首轮独立性 |
+|---|---|---|---|---|
+| legacy | `python3 qc.py <稿件>` | 无 | 无机械执行 | 否——复核拿到的 prompt 里带着主审答案 |
+| audited | `python3 scripts/run_audited_qc.py <稿件>` | 有，`EvidenceRun` 强制五状态迁移 | 5 道，逐道要 evidence locator | 主审与复核首轮互不可见，只在整理阶段会合 |
+
+引用运行结果时必须写清是哪个入口跑的。下面的架构图画的是 legacy 链路。
+
 ## 架构
 
 ```text

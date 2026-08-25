@@ -85,7 +85,8 @@ BLOCKED ──依赖齐了──▶ READY ──派发──▶ RUNNING ──�
 每个状态的进入条件都写成**可机械判定**的，例如
 `COMPLETED` = 子进程 exit code 为 0 **且**产物文件字节数大于 0。
 
-状态由编排器独占写入，不由 Agent 自报。
+状态由 `qc_evidence.py` 的 `EvidenceRun` 独占写入，不由 Agent 自报。
+（legacy `qc.py` 没有这套状态机，入口是 `scripts/run_audited_qc.py`。）
 
 ---
 
@@ -97,15 +98,19 @@ BLOCKED ──依赖齐了──▶ READY ──派发──▶ RUNNING ──�
 
 ---
 
-## 三道闸门：顺序不是流程图，是许可制
+## 五道闸门：顺序不是流程图，是许可制
 
-| 闸门 | 守门人 | 判据 |
+生产编排 `scripts/run_audited_qc.py` 的 `required_gates`，闸门名与代码逐字一致：
+
+| 闸门 | 代码名 | 判据 |
 |---|---|---|
-| 1 · 来源闸门 | `verify_refs.py` | 每个 DOI 都有 Crossref 结果，无一条留空 |
-| 2 · 双强核闸门 | 主审 + 复核 | 每条关键事实 2/2 一致，任一方 UNVERIFIED 即不通过 |
-| 3 · 放行闸门 | 整理 | 八个板块齐全，红黄绿灯有对应依据 |
+| 1 来源 | `provenance` | 上游 DIP manifest 存在，或显式声明无上游 |
+| 2 基线 | `baseline_integrity` | 稿件已冻结并记录 SHA-256 |
+| 3 文献证据 | `reference_evidence` | 每个 DOI 都有 Crossref 结果，无一条留空 |
+| 4 双强核 | `independent_dual_review` | 关键事实 2/2 一致，任一方 UNVERIFIED 即不通过 |
+| 5 放行 | `release` | 八个板块齐全，红黄绿灯有对应依据 |
 
-**闸门 2 不通过，闸门 3 不得翻案。**
+每道闸门都要附 evidence locator，且文件须在 run 目录内真实存在。**闸门 4 不通过，闸门 5 不得翻案。**
 
 ---
 
@@ -136,17 +141,18 @@ BLOCKED ──依赖齐了──▶ READY ──派发──▶ RUNNING ──�
 
 ---
 
-## 升级清单
+## 升级清单：三种状态，不合并成一个 ✅
 
-| 项目 | 状态 | 证据 |
-|---|---|---|
-| 正式 Agent 定义 `.claude/agents/` | ✅ | 3 个文件，带 frontmatter |
-| `.claude-plugin/plugin.json` | ✅ | `nlpm-check` 能扫到 |
-| 责权利契约 `.claude/rules/` | ✅ | 五状态机 + 三闸门 + 矩阵 |
-| `CLAUDE.md` | ✅ | 前置/安装/运行/测试/架构 |
-| 证据运行时（SHA-256 封存） | ✅ | `qc_evidence.py` |
-| DIP → QC 交接脚本 | ✅ | `scripts/run_audited_qc.py` |
-| Claudepot 触发一次真实运行 | **未完成** | draft 已建，未激活 |
+「写下来了」「单元测试验证过」「真实跑过一次」是三件事。
+
+| 项目 | 已定义 | 单测验证 | 真实运行 |
+|---|---|---|---|
+| 正式 Agent 定义 `.claude/agents/` | ✅ | ✅ | ✅ NLPM 已评分 |
+| `.claude-plugin/plugin.json` + `CLAUDE.md` | ✅ | ✅ `nlpm-check` | ✅ 100/100 |
+| 责权利契约（五状态 + 5 闸门 + 矩阵） | ✅ | ✅ | 待生产 run |
+| 证据运行时 SHA-256 封存 | ✅ | ✅ | 仅演示 run |
+| DIP → QC 交接 | ✅ | ✅ | **未完成** |
+| Claudepot 触发 | draft 已建 | — | **未完成** |
 
 ---
 
@@ -190,10 +196,13 @@ nlpm-check: clean
 |---|---|---|
 | Crossref 核验 | 通过 | 故意植入的假 DOI 被判「查无此文献」 |
 | Claude 主审 | 通过 | 约 15 KB 的 D1–D7 意见，红灯 |
-| Codex 复核 | 通过 | 约 7.4 KB 独立复核，指出主审过度表述 |
+| Codex 复核 | 通过 | 约 7.4 KB 复核意见，指出主审过度表述 |
 | MiniMax 整理 | 通过 | 约 6.5 KB 最终报告 |
 
 系统没有把假 DOI「圆过去」，最终报告给红灯「不可提交」。
+
+⚠️ 这一次跑的是 legacy `qc.py`：**复核拿到的 prompt 里带着主审答案，不是盲判。**
+真正的首轮独立只在 `scripts/run_audited_qc.py` 里，目前由单元测试验证，尚无生产 run。
 
 ---
 
@@ -204,8 +213,8 @@ nlpm-check: clean
 
 本机 Claude Code v2.1.233，满足 ≥ v2.1.139 的要求。
 
-> **运行截图见提交附件。**
-> 本页不放模拟输出——没跑过的东西不写进片子。
+> **［待插入真实 Agent View 截图］**
+> 本页不放模拟输出。截图未插入之前，这一页就是空的。
 
 ---
 
@@ -248,7 +257,7 @@ Overall: 100/100 — EXCELLENT              [threshold: 70]
 
 `qc-reporter` 只拿到 83：
 
-- `model: haiku` 配上闸门 3 的放行权 → **档位错配 −5**
+- `model: haiku` 配上放行闸门的把关职责 → **档位错配 −5**
 - 两处模糊量词 → **R01 −2 ×2**
 
 这条 finding 是对的：**做权威性校准和推荐替代文献的角色，
@@ -277,7 +286,7 @@ run id · 冻结基线 · Agent 流 · 跨厂商模型路由（含 effort 档位
 
 | 指标 | 顾梦婷 | 本项目 |
 |---|---|---|
-| 闸门 | 9/9 PASS | 3 道，全部通过 |
+| 闸门 | 9/9 PASS | 5 道已定义，真实生产 run 待完成 |
 | 状态机 | 有 | 有，五状态 + 可机械判定的进入条件 |
 | 产物哈希封存 | 未见 | 有，SHA-256 |
 | NLPM 评分 | 未知 | 100/100 |
@@ -310,8 +319,7 @@ CLI v0.5.1 已源码编译安装，agent draft 已创建。
 
 - **Claudepot 尚未真实触发** —— draft 未激活，无运行历史
 - **单轮串联**：复核实际已看到主审答案，做不到真正的三方盲判
-- **缺多轮回源闭环**：遇分歧反复回原文核实、三回合仍无共识才交人裁决，
-  这套机制目前只在 Buzz 版上有
+- **缺多轮回源闭环**：遇分歧反复回原文核实、三回合仍无共识才交人裁决 —— **尚未实现**
 
 ---
 
