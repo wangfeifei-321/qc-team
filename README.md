@@ -122,12 +122,43 @@ qc-team/
 ├── .claude/rules/                # 责权利契约：状态机、闸门、放行权矩阵
 ├── scripts/
 │   ├── docx2txt.py               # DOCX 转纯文本
-│   └── verify_refs.py            # Crossref DOI 核验
+│   ├── verify_refs.py            # Crossref DOI 核验
+│   └── check_pptx.py             # 幻灯片交付门
+├── presentation/
+│   ├── build_deck.js             # 幻灯片构建源码（主题变量 + 版式组件 + 十页内容）
+│   ├── QC-Team.pptx              # 构建产物，原生对象
+│   └── evidence/                 # 两张真实运行截图
 ├── samples/                      # 虚构演示稿件
 ├── reports/                      # 本地输出，不提交真实报告
 ├── .env.example                  # MiniMax 配置模板
 └── 怎么用_看这个.md              # 中文操作说明
 ```
+
+## 汇报幻灯片：代码化构建
+
+幻灯片不在 WPS 里手工排版，而是当成代码项目来构建：主题变量、页面组件和十页内容都写在
+`presentation/build_deck.js` 里，终端一条命令生成**原生 PPTX**（文字与形状都是 PowerPoint
+原生对象，可缩放、可编辑），再由一条命令做机械验收。
+
+```bash
+npm install          # 按 package-lock.json 安装固定版本的 PptxGenJS
+npm run build:ppt    # 生成 presentation/QC-Team.pptx
+npm run check:ppt    # 交付门：页数、画布、原生文字、图片数、对象越界
+```
+
+`check:ppt` 的通过标准：10 页、画布 13.333 × 7.5 英寸、每页都有原生文字、媒体文件不超过 4 个
+（只允许两张运行截图）、所有对象越界数为 0。任一项不达标即退出码非 0，不应交付。
+
+换用到别的项目时：
+
+| 想换什么 | 改哪里 |
+|---|---|
+| 配色 | `presentation/build_deck.js` 顶部的 `C` 颜色表 |
+| 字体 | 同文件顶部的 `F` |
+| 版式组件 | `shell()` / `banner()` / `dots()` 三个函数 |
+| 内容 | 各页的文本与 `presentation/evidence/` 下的图片 |
+
+改完重新执行 `npm run build:ppt`，构建命令本身不变。
 
 ## 安全与隐私
 

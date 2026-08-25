@@ -16,3 +16,6 @@ __pycache__/
 
 # 模型运行时产生的临时下载与截图
 tmp/
+
+# Node 依赖，clone 后用 npm install 还原
+node_modules/

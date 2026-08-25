@@ -1,0 +1,13 @@
+{
+  "name": "qc-team-deck",
+  "version": "1.0.0",
+  "private": true,
+  "description": "QC-Team 汇报幻灯片的代码化构建：一条命令生成原生 PPTX，再跑一条命令做交付门检查。",
+  "scripts": {
+    "build:ppt": "node presentation/build_deck.js",
+    "check:ppt": "python3 scripts/check_pptx.py presentation/QC-Team.pptx"
+  },
+  "dependencies": {
+    "pptxgenjs": "4.0.1"
+  }
+}
