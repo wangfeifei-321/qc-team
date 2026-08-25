@@ -346,9 +346,9 @@ function banner(s, text, y = H - 1.42) {
     x: 0.85, y: 5.72, w: 3.6, h: 0.6, fontFace: F, fontSize: 11.5, color: C.red, lineSpacingMultiple: 1.2,
   });
   s.addShape(pptx.ShapeType.roundRect, { x: 4.55, y: 2.1, w: 8.1, h: 2.0, fill: { color: C.white }, line: { color: C.line, width: 1 }, rectRadius: 0.08 });
-  s.addImage({ path: `${EV}/claudepot-success.jpeg`, x: 4.72, y: 2.22, w: 7.76, h: 1.76 });
+  s.addImage({ path: `${EV}/claudepot-success.jpeg`, x: 4.72, y: 2.22, w: 7.76, h: 1.76, altText: 'Claudepot automation success evidence' });
   s.addShape(pptx.ShapeType.roundRect, { x: 4.55, y: 4.25, w: 8.1, h: 2.0, fill: { color: C.white }, line: { color: C.line, width: 1 }, rectRadius: 0.08 });
-  s.addImage({ path: `${EV}/agent-view-completed.jpeg`, x: 4.72, y: 4.37, w: 7.76, h: 1.76 });
+  s.addImage({ path: `${EV}/agent-view-completed.jpeg`, x: 4.72, y: 4.37, w: 7.76, h: 1.76, altText: 'Claude Agent View completed session evidence' });
   [['Claudepot · success', 2.24], ['Agent View · completed', 4.39]].forEach(([t, y]) => {
     s.addShape(pptx.ShapeType.roundRect, { x: 4.85, y, w: 2.35, h: 0.36, fill: { color: C.deep }, line: { type: 'none' }, rectRadius: 0.06 });
     s.addText(t, { x: 4.85, y, w: 2.35, h: 0.36, fontFace: F, fontSize: 11, bold: true, color: C.white, align: 'center', valign: 'middle' });

@@ -42,6 +42,14 @@ def check(path):
 
         failures = []
         total_out = 0
+        # 本机绝对路径不得出现在任何 XML（PPTX 会把图片来源写进 descr）
+        leak_pat = re.compile(r"/Users/|/home/|[A-Za-z]:\\\\Users\\\\")
+        for name in pkg.namelist():
+            if not name.endswith(".xml"):
+                continue
+            hit = leak_pat.search(pkg.read(name).decode("utf-8", "ignore"))
+            if hit:
+                failures.append("%s 里残留本机绝对路径：%s" % (name, hit.group(0)))
         for index in range(1, len(slides) + 1):
             xml = pkg.read("ppt/slides/slide%d.xml" % index).decode("utf-8")
             boxes = OFF_EXT.findall(xml)
