@@ -152,7 +152,7 @@ BLOCKED ──依赖齐了──▶ READY ──派发──▶ RUNNING ──�
 | 责权利契约（五状态 + 5 闸门 + 矩阵） | ✅ | ✅ | 待生产 run |
 | 证据运行时 SHA-256 封存 | ✅ | ✅ | 仅演示 run |
 | DIP → QC 交接 | ✅ | ✅ | **未完成** |
-| Claudepot 触发 | draft 已建 | — | **未完成** |
+| Claudepot 触发 | ✅ | — | ✅ 2026-08-25 成功 |
 
 ---
 
@@ -212,8 +212,9 @@ OK
 
 本机 Claude Code v2.1.233，满足 ≥ v2.1.139 的要求。
 
-> **［待插入真实 Agent View 截图］**
-> 本页不放模拟输出。截图未插入之前，这一页就是空的。
+![width:820px](evidence/agent-view-completed.jpeg)
+
+`0 awaiting input · 0 working · 1 completed`，工作目录 `~/Desktop/qc-team`。
 
 ---
 
@@ -241,22 +242,45 @@ run id · 冻结基线 · Agent 流 · 跨厂商模型路由（含 effort 档位
 | 闸门 | 9/9 PASS | 5 道已定义，真实生产 run 待完成 |
 | 状态机 | 有 | 有，五状态 + 可机械判定的进入条件 |
 | 产物哈希封存 | 未见 | 有，SHA-256 |
-| Action Integration | NOT_CONNECTED | **同样未接通** |
+| Action Integration | NOT_CONNECTED | **已接通，且真实跑成功一次** |
 
 ---
 
-## Claudepot 现状：诚实版
+## Claudepot：真实跑通了
 
-```bash
-$ claudepot agent list
-ID                                    NAME             LIFECYCLE  TRIGGER
-599ff60b-dc52-4056-974d-8f35bc2c254c  qc-team-trigger  draft      manual
+![width:900px](evidence/claudepot-success.jpeg)
+
+`QC-Team Trigger v2` · 状态**成功** · 2026-08-25 04:08:38 · 用时 4m · 4 轮 ·
+`subtype: success` · `is_error: false` · `stop_reason: end_turn`
+
+---
+
+## 这一条是修出来的，不是一次就对
+
+| 版本 | 结果 | 原因 |
+|---|---|---|
+| v1 | **失败，退出码 127** | `~/.local/bin/claude` 指向已失效的旧 Cursor 扩展；修复后又被 Bash 权限门阻断 |
+| v2 | **成功** | 新 Agent 使用受限 prompt，并把权限收成精确 allowlist |
+
+v2 的权限只给到：
+`Read, Grep, Glob, Bash(python3 qc.py *), Bash(python3 /Users/wangcaidi/Desktop/qc-team/qc.py *)`
+
+**AI 只有提议权（draft），上膛必须人来点** —— 这一条不是我们设计的，
+是 Claudepot 写死的：CLI 里根本没有 `install` 这个动词。
+
+---
+
+## 这次运行真的产出了东西
+
+```
+reports/_refs_verified.json            Crossref: 10.1016/j.example.2016.01.001 → 查无此 DOI
+reports/demo_稿件样例_1主审.md          7.5 KB
+reports/demo_稿件样例_2复核.md          5.3 KB
+reports/demo_稿件样例_质检报告_2026-08-25_120847.md   5.5 KB
 ```
 
-CLI v0.5.1 已源码编译安装，agent draft 已创建。
-
-**但 lifecycle 还是 `draft`** —— 需要在 GUI 里 Review & install 才激活。
-在它真的跑出一条运行历史之前，这一条**不算完成**。
+最终报告结论：**红灯，不建议提交**。
+抓出 3 条 🔴 严重（杜撰 DOI、卷期页与官方目录冲突、引用方向绝对化误用）。
 
 ---
 
@@ -268,7 +292,6 @@ CLI v0.5.1 已源码编译安装，agent draft 已创建。
 
 ## 还没做到的（不粉饰）
 
-- **Claudepot 尚未真实触发** —— draft 未激活，无运行历史
 - **单轮串联**：复核实际已看到主审答案，做不到真正的三方盲判
 - **缺多轮回源闭环**：遇分歧反复回原文核实、三回合仍无共识才交人裁决 —— **尚未实现**
 
@@ -276,10 +299,10 @@ CLI v0.5.1 已源码编译安装，agent draft 已创建。
 
 ## 下一步
 
-1. 激活 Claudepot automation，跑出第一条真实运行历史
-2. 把「单轮串联」改造成「多轮循环」：主审出结论 → 自我复核 →
+1. 把「单轮串联」改造成「多轮循环」：主审出结论 → 自我复核 →
    与复核就分歧往返 → 逐轮把原始判断与证据落盘
-3. 把 DIP 产稿 → QC 质检跑一次真实生产 run
+2. 把 DIP 产稿 → QC 质检跑一次真实生产 run
+3. 给 Claudepot agent 配上 cron 表达式，做到无人值守
 
 ---
 

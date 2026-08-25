@@ -56,7 +56,7 @@ scripts/verify_refs.py ── Crossref 真实 API 核验 DOI ──► reports/_
 qc-conductor（claude -p）        主审 D1–D7          ──► reports/<稿件名>_1主审.md      [强核票 1/2]
         │
         ▼
-qc-verifier（codex exec）        独立复核、挑主审的错  ──► reports/<稿件名>_2复核.md      [强核票 1/2]
+qc-verifier（codex exec）        复核、挑主审的错（可见主审答案） ──► reports/<稿件名>_2复核.md [强核票 1/2]
         │
         ▼
 qc-reporter（MiniMax HTTP API）  机械扫描 + 综合报告   ──► reports/<稿件名>_质检报告_<时间戳>.md  [闸门 3]
