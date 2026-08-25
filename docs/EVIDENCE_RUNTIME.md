@@ -74,3 +74,16 @@ python3 scripts/run_audited_qc.py manuscript.docx \
 
 Use `--standalone` only when the input did not come from DIP. The manifest then
 records that provenance choice instead of implying a DIP handoff occurred.
+
+## Read-only screenshot report
+
+Render a verified run to a standalone HTML file:
+
+```bash
+python3 scripts/render_run_report.py reports/evidence_runs/RUN_ID \
+  --output reports/dashboards/RUN_ID.html
+```
+
+The renderer refuses runs whose hash verification fails. Demonstration runs
+carry a prominent warning so their controller evidence cannot be mistaken for
+a live Agent Team or model execution.
