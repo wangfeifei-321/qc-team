@@ -108,9 +108,7 @@ BLOCKED ──依赖齐了──▶ READY ──派发──▶ RUNNING ──�
 | 2 基线 | `baseline_integrity` | 稿件已冻结并记录 SHA-256 |
 | 3 文献证据 | `reference_evidence` | 每个 DOI 都有 Crossref 结果，无一条留空 |
 | 4 双强核 | `independent_dual_review` | 关键事实 2/2 一致，任一方 UNVERIFIED 即不通过 |
-| 5 放行 | `release` | 八个板块齐全，红黄绿灯有对应依据 |
-
-每道闸门都要附 evidence locator，且文件须在 run 目录内真实存在。**闸门 4 不通过，闸门 5 不得翻案。**
+| 5 放行 | `release` | 八个板块齐全，且闸门 4 已通过 |
 
 ---
 
@@ -152,7 +150,7 @@ BLOCKED ──依赖齐了──▶ READY ──派发──▶ RUNNING ──�
 | 责权利契约（五状态 + 5 闸门 + 矩阵） | ✅ | ✅ | 待生产 run |
 | 证据运行时 SHA-256 封存 | ✅ | ✅ | 仅演示 run |
 | DIP → QC 交接 | ✅ | ✅ | **未完成** |
-| Claudepot 触发 | ✅ | — | ✅ 2026-08-25 成功 |
+| Claudepot 触发 | ✅ | — | ✅ 成功 |
 
 ---
 
